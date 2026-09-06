@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	xLinkerdRetryable = "x-linkerd-retryable"
-	xLinkerdTimeout   = "x-linkerd-timeout"
+	xLinkerdRetryable   = "x-linkerd-retryable"
+	xLinkerdTimeout     = "x-linkerd-timeout"
+	xLinkerdRouteLookup = "x-linkerd-route-lookup"
 )
 
 // RenderOpenAPI reads an OpenAPI spec file and renders the corresponding
@@ -59,6 +60,14 @@ func swaggerToServiceProfile(swagger spec.Swagger, namespace, name, clusterDomai
 
 	routes := make([]*sp.RouteSpec, 0)
 
+	// The info-level x-linkerd-route-lookup extension names an operation
+	// attribute (e.g. operationId, or another vendor extension) whose value,
+	// when present, overrides the generated route name.
+	routeLookup := ""
+	if swagger.Info != nil {
+		routeLookup, _ = swagger.Info.Extensions.GetString(xLinkerdRouteLookup)
+	}
+
 	paths := make([]string, 0)
 	if swagger.Paths != nil {
 		for path := range swagger.Paths.Paths {
@@ -73,31 +82,31 @@ func swaggerToServiceProfile(swagger spec.Swagger, namespace, name, clusterDomai
 		path := base + "/" + strings.TrimLeft(relPath, "/")
 		pathRegex := PathToRegex(path)
 		if item.Delete != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodDelete, item.Delete)
+			spec := mkRouteSpec(path, pathRegex, http.MethodDelete, item.Delete, routeLookup)
 			routes = append(routes, spec)
 		}
 		if item.Get != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodGet, item.Get)
+			spec := mkRouteSpec(path, pathRegex, http.MethodGet, item.Get, routeLookup)
 			routes = append(routes, spec)
 		}
 		if item.Head != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodHead, item.Head)
+			spec := mkRouteSpec(path, pathRegex, http.MethodHead, item.Head, routeLookup)
 			routes = append(routes, spec)
 		}
 		if item.Options != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodOptions, item.Options)
+			spec := mkRouteSpec(path, pathRegex, http.MethodOptions, item.Options, routeLookup)
 			routes = append(routes, spec)
 		}
 		if item.Patch != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodPatch, item.Patch)
+			spec := mkRouteSpec(path, pathRegex, http.MethodPatch, item.Patch, routeLookup)
 			routes = append(routes, spec)
 		}
 		if item.Post != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodPost, item.Post)
+			spec := mkRouteSpec(path, pathRegex, http.MethodPost, item.Post, routeLookup)
 			routes = append(routes, spec)
 		}
 		if item.Put != nil {
-			spec := MkRouteSpec(path, pathRegex, http.MethodPut, item.Put)
+			spec := mkRouteSpec(path, pathRegex, http.MethodPut, item.Put, routeLookup)
 			routes = append(routes, spec)
 		}
 	}
@@ -108,21 +117,50 @@ func swaggerToServiceProfile(swagger spec.Swagger, namespace, name, clusterDomai
 
 // MkRouteSpec makes a service profile route from an OpenAPI operation.
 func MkRouteSpec(path, pathRegex string, method string, operation *spec.Operation) *sp.RouteSpec {
+	return mkRouteSpec(path, pathRegex, method, operation, "")
+}
+
+func mkRouteSpec(path, pathRegex, method string, operation *spec.Operation, routeLookup string) *sp.RouteSpec {
 	retryable := false
 	timeout := ""
 	var responses *spec.Responses
+	name := fmt.Sprintf("%s %s", method, path)
 	if operation != nil {
 		retryable, _ = operation.VendorExtensible.Extensions.GetBool(xLinkerdRetryable)
 		timeout, _ = operation.VendorExtensible.Extensions.GetString(xLinkerdTimeout)
 		responses = operation.Responses
+		if routeLookup != "" {
+			if lookupName := lookupRouteName(operation, routeLookup); lookupName != "" {
+				name = lookupName
+			}
+		}
 	}
 	return &sp.RouteSpec{
-		Name:            fmt.Sprintf("%s %s", method, path),
+		Name:            name,
 		Condition:       toReqMatch(pathRegex, method),
 		ResponseClasses: toRspClasses(responses),
 		IsRetryable:     retryable,
 		Timeout:         timeout,
 	}
+}
+
+// lookupRouteName resolves the operation attribute named by the
+// x-linkerd-route-lookup extension to a route name. The attribute may be a
+// vendor extension on the operation (e.g. x-acmecorp-route) or one of the
+// operation's own string fields (e.g. operationId). Attributes that are
+// missing or not strings yield "" so that the default route name is used.
+func lookupRouteName(operation *spec.Operation, token string) string {
+	if value, ok := operation.VendorExtensible.Extensions.GetString(token); ok {
+		return value
+	}
+	value, err := operation.JSONLookup(token)
+	if err != nil {
+		return ""
+	}
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return ""
 }
 
 func toReqMatch(path string, method string) *sp.RequestMatch {

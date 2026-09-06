@@ -91,3 +91,100 @@ func TestSwaggerToServiceProfile(t *testing.T) {
 		t.Fatalf("ServiceProfiles are not equal: %v", err)
 	}
 }
+
+func TestSwaggerToServiceProfileRouteLookup(t *testing.T) {
+	namespace := "myns"
+	name := "mysvc"
+	clusterDomain := "mycluster.local"
+
+	mkSwagger := func(routeLookup string) spec.Swagger {
+		return spec.Swagger{
+			SwaggerProps: spec.SwaggerProps{
+				Info: &spec.Info{
+					VendorExtensible: spec.VendorExtensible{
+						Extensions: spec.Extensions{xLinkerdRouteLookup: routeLookup},
+					},
+				},
+				Paths: &spec.Paths{
+					Paths: map[string]spec.PathItem{
+						"/pets/{id}": {
+							PathItemProps: spec.PathItemProps{
+								Get: &spec.Operation{
+									OperationProps: spec.OperationProps{
+										ID: "get_pet_by_id",
+									},
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{"x-acmecorp-route": "acme_get_pet"},
+									},
+								},
+								Delete: &spec.Operation{},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	mkExpected := func(getRouteName string) sp.ServiceProfile {
+		return sp.ServiceProfile{
+			TypeMeta: ServiceProfileMeta,
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name + "." + namespace + ".svc." + clusterDomain,
+				Namespace: namespace,
+			},
+			Spec: sp.ServiceProfileSpec{
+				Routes: []*sp.RouteSpec{
+					{
+						Name: "DELETE /pets/{id}",
+						Condition: &sp.RequestMatch{
+							PathRegex: "/pets/[^/]*",
+							Method:    "DELETE",
+						},
+					},
+					{
+						Name: getRouteName,
+						Condition: &sp.RequestMatch{
+							PathRegex: "/pets/[^/]*",
+							Method:    "GET",
+						},
+					},
+				},
+			},
+		}
+	}
+
+	testCases := []struct {
+		description  string
+		routeLookup  string
+		getRouteName string
+	}{
+		{
+			description:  "operationId lookup",
+			routeLookup:  "operationId",
+			getRouteName: "get_pet_by_id",
+		},
+		{
+			description:  "vendor extension lookup",
+			routeLookup:  "x-acmecorp-route",
+			getRouteName: "acme_get_pet",
+		},
+		{
+			description:  "missing attribute falls back to default",
+			routeLookup:  "x-does-not-exist",
+			getRouteName: "GET /pets/{id}",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			actual := swaggerToServiceProfile(mkSwagger(tc.routeLookup), namespace, name, clusterDomain)
+			expected := mkExpected(tc.getRouteName)
+			err := ServiceProfileYamlEquals(actual, expected)
+			if err != nil {
+				t.Fatalf("ServiceProfiles are not equal: %v", err)
+			}
+		})
+	}
+}
