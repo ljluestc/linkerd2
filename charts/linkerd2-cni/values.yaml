@@ -1,68 +1,25 @@
-# -- Inbound port for the proxy container
-inboundProxyPort: 4143
-# -- Outbound port for the proxy container
-outboundProxyPort: 4140
-# -- Default set of inbound ports to skip via iptables
-ignoreInboundPorts: ""
-# -- Default set of outbound ports to skip via iptables
-ignoreOutboundPorts: ""
-# -- Admin port for the proxy container
-proxyAdminPort: 4191
-# -- Control port for the proxy container
-proxyControlPort: 4190
-# -- Additional labels to add to all pods
-podLabels: {}
+# Keys at the root level of this file are sorted alphabetically.
+
 # -- Labels to apply to all resources
 commonLabels: {}
-# -- Log level for the CNI plugin
-logLevel:         info
-# -- Ports to redirect to proxy
-portsToRedirect:  ""
-# -- User id under which the proxy shall be ran
-proxyUID:         2102
-# -- (int) Optional customisation of the group id under which the proxy shall be ran (the group ID will be omitted if lower than 0)
-proxyGID: -1
-# -- Directory on the host where the CNI plugin binaries reside
-destCNINetDir:    "/etc/cni/net.d"
 # -- Directory on the host where the CNI configuration will be placed
 destCNIBinDir:    "/opt/cni/bin"
-# -- Configures the CNI plugin to use the -w flag for the iptables command
-useWaitFlag:      false
-# -- Variant of iptables that will be used to configure routing. Allowed values
-# are 'nft', 'legacy' and 'plain'. They invoke the 'iptables-nft',
-# 'iptables-legacy' and 'iptables' commands respectively. The 'plain' mode is
-# targeted at RHEL, which ships with an nftables-based 'iptables' command.
-iptablesMode: "nft"
+# -- Directory on the host where the CNI plugin binaries reside
+destCNINetDir:    "/etc/cni/net.d"
 # -- Disables adding IPv6 rules on top of IPv4 rules
 disableIPv6: true
-# -- Kubernetes priorityClassName for the CNI plugin's Pods
-priorityClassName: ""
-# -- Specifies the number of old ReplicaSets to retain to allow rollback.
-revisionHistoryLimit: 10
-# -- Specifies the update strategy for how the new pods are rolled out
-updateStrategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxUnavailable: 1
 
 # -- Add a PSP resource and bind it to the linkerd-cni ServiceAccounts.
 # Note PSP has been deprecated since k8s v1.21
 enablePSP: false
 
-# -- Run the install-cni container in privileged mode
-privileged: false
+# -- Add additional initContainers to the daemonset
+extraInitContainers: []
 
-# -|- Tolerations section, See the
-# [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
-# for more information
-tolerations:
-  # -- toleration properties
-  - operator: Exists
-
-# -|- NodeAffinity section, See the
-# [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity)
-# for more information
-#nodeAffinity:
+# -- Default set of inbound ports to skip via iptables
+ignoreInboundPorts: ""
+# -- Default set of outbound ports to skip via iptables
+ignoreOutboundPorts: ""
 
 # -|- Image section
 image:
@@ -85,8 +42,41 @@ image:
 # which will further orchestrate the deployments.
 imagePullSecrets: []
 
-# -- Add additional initContainers to the daemonset
-extraInitContainers: []
+# -- Inbound port for the proxy container
+inboundProxyPort: 4143
+# -- Variant of iptables that will be used to configure routing. Allowed values
+# are 'nft', 'legacy' and 'plain'. They invoke the 'iptables-nft',
+# 'iptables-legacy' and 'iptables' commands respectively. The 'plain' mode is
+# targeted at RHEL, which ships with an nftables-based 'iptables' command.
+iptablesMode: "nft"
+# -- Log level for the CNI plugin
+logLevel:         info
+
+# -|- NodeAffinity section, See the
+# [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity)
+# for more information
+#nodeAffinity:
+
+# -- Outbound port for the proxy container
+outboundProxyPort: 4140
+# -- Additional labels to add to all pods
+podLabels: {}
+# -- Ports to redirect to proxy
+portsToRedirect:  ""
+# -- Kubernetes priorityClassName for the CNI plugin's Pods
+priorityClassName: ""
+
+# -- Run the install-cni container in privileged mode
+privileged: false
+
+# -- Admin port for the proxy container
+proxyAdminPort: 4191
+# -- Control port for the proxy container
+proxyControlPort: 4190
+# -- (int) Optional customisation of the group id under which the proxy shall be ran (the group ID will be omitted if lower than 0)
+proxyGID: -1
+# -- User id under which the proxy shall be ran
+proxyUID:         2102
 
 # The cni-repair-controller scans pods in each node to find those that have
 # been injected by linkerd, and whose linkerd-network-validator container has
@@ -141,3 +131,22 @@ resources:
     limit: ""
     # -- Amount of ephemeral storage that the cni container requests
     request: ""
+
+# -- Specifies the number of old ReplicaSets to retain to allow rollback.
+revisionHistoryLimit: 10
+
+# -|- Tolerations section, See the
+# [K8S documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+# for more information
+tolerations:
+  # -- toleration properties
+  - operator: Exists
+
+# -- Specifies the update strategy for how the new pods are rolled out
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# -- Configures the CNI plugin to use the -w flag for the iptables command
+useWaitFlag:      false
