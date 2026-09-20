@@ -245,6 +245,14 @@ proxy:
   opaquePorts: "25,587,3306,4444,5432,6379,9300,11211"
   # -- Grace period for graceful proxy shutdowns. If this timeout elapses before all open connections have completed, the proxy will terminate forcefully, closing any remaining connections.
   shutdownGracePeriod: ""
+  # -- Name of a `kubernetes.io/tls` Secret, in the workload's namespace, whose
+  # `tls.crt`/`tls.key` the proxy serves on inbound TLS connections that do not
+  # come from another Linkerd proxy (e.g. legacy clients that pin the
+  # application's pre-mesh certificate). Meshed connections keep using the
+  # identity issued by Linkerd. The Secret is mounted read-only into the proxy
+  # container. Can be overridden per workload or namespace with the
+  # `config.linkerd.io/inbound-fallback-tls-secret` annotation.
+  inboundFallbackTLSSecret: ""
   # -- The default allow policy to use when no `Server` selects a pod.  One of: "all-authenticated",
   # "all-unauthenticated", "cluster-authenticated", "cluster-unauthenticated", "deny", "audit"
   # @default -- "all-unauthenticated"

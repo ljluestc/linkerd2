@@ -148,6 +148,7 @@ type (
 		OutboundTransportMode                string           `json:"outboundTransportMode"`
 		AccessLog                            string           `json:"accessLog"`
 		ShutdownGracePeriod                  string           `json:"shutdownGracePeriod"`
+		InboundFallbackTLSSecret             string           `json:"inboundFallbackTLSSecret"`
 		NativeSidecar                        bool             `json:"nativeSidecar"`
 		StartupProbe                         *StartupProbe    `json:"startupProbe"`
 		ReadinessProbe                       *Probe           `json:"readinessProbe"`

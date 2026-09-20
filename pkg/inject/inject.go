@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/yaml"
 )
 
@@ -81,6 +82,7 @@ var (
 		k8s.ProxyDisableInboundProtocolDetectTimeout,
 		k8s.ProxyEnableNativeSidecarAnnotation,
 		k8s.ProxyAdditionalEnvAnnotation,
+		k8s.ProxyInboundFallbackTLSSecretAnnotation,
 	}
 	// ProxyAlphaConfigAnnotations is the list of all alpha configuration
 	// (config.alpha prefix) that can be applied to a pod or namespace.
@@ -605,6 +607,14 @@ func ApplyAnnotationOverrides(values *l5dcharts.Values, annotations map[string]s
 		values.Proxy.AccessLog = override
 	}
 
+	if override, ok := annotations[k8s.ProxyInboundFallbackTLSSecretAnnotation]; ok {
+		if errs := ValidateInboundFallbackTLSSecret(override); len(errs) > 0 {
+			log.Warnf("ignoring invalid value %q for the %s annotation: %s", override, k8s.ProxyInboundFallbackTLSSecretAnnotation, strings.Join(errs, "; "))
+		} else {
+			values.Proxy.InboundFallbackTLSSecret = override
+		}
+	}
+
 	if values.Proxy.Tracing != nil {
 		if values.Proxy.Tracing.Labels == nil {
 			values.Proxy.Tracing.Labels = make(map[string]string)
@@ -623,6 +633,16 @@ func ApplyAnnotationOverrides(values *l5dcharts.Values, annotations map[string]s
 			}
 		}
 	}
+}
+
+// ValidateInboundFallbackTLSSecret checks that the given value is usable as
+// the name of a kubernetes.io/tls Secret that the proxy injector will mount
+// into the proxy container. An empty value is valid and means "disabled".
+func ValidateInboundFallbackTLSSecret(name string) []string {
+	if name == "" {
+		return nil
+	}
+	return validation.IsDNS1123Subdomain(name)
 }
 
 // NewResourceConfig creates and initializes a ResourceConfig

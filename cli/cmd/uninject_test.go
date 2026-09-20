@@ -37,6 +37,13 @@ func TestUninjectYAML(t *testing.T) {
 			reportFileName: "inject_emojivoto_list_uninject.report",
 		},
 		{
+			// the fallback TLS secret volume must be removed along with the
+			// proxy, while the config.linkerd.io annotation is retained
+			inputFileName:  "inject_emojivoto_deployment_inbound_fallback_tls.golden.yml",
+			goldenFileName: "inject_emojivoto_deployment_inbound_fallback_tls_uninjected.golden.yml",
+			reportFileName: "inject_emojivoto_deployment_uninject.report",
+		},
+		{
 			inputFileName:  "inject_emojivoto_deployment_hostNetwork_true.input.yml",
 			goldenFileName: "inject_emojivoto_deployment_hostNetwork_true.input.yml",
 			reportFileName: "inject_emojivoto_deployment_hostNetwork_true_uninject.report",

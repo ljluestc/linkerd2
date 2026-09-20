@@ -712,6 +712,7 @@ data:
             keepAliveTimeout: 3s
       inboundConnectTimeout: 100ms
       inboundDiscoveryCacheUnusedTimeout: 90s
+      inboundFallbackTLSSecret: ""
       isGateway: false
       isIngress: false
       livenessProbe:

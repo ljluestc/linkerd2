@@ -497,6 +497,10 @@ func getOverrideAnnotations(values *linkerd2.Values, base *linkerd2.Values) map[
 		overrideAnnotations[k8s.ProxyShutdownGracePeriodAnnotation] = proxy.ShutdownGracePeriod
 	}
 
+	if proxy.InboundFallbackTLSSecret != baseProxy.InboundFallbackTLSSecret {
+		overrideAnnotations[k8s.ProxyInboundFallbackTLSSecretAnnotation] = proxy.InboundFallbackTLSSecret
+	}
+
 	if proxy.NativeSidecar != baseProxy.NativeSidecar {
 		overrideAnnotations[k8s.ProxyEnableNativeSidecarAnnotation] = strconv.FormatBool(proxy.NativeSidecar)
 	}

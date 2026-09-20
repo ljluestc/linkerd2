@@ -4,6 +4,18 @@ emptyDir:
 name: linkerd-identity-end-entity
 {{- end -}}
 
+{{- define "partials.proxy.volumes.inbound-fallback-tls" -}}
+name: linkerd-inbound-fallback-tls
+secret:
+  secretName: {{ .Values.proxy.inboundFallbackTLSSecret }}
+  defaultMode: 0400
+  items:
+  - key: tls.crt
+    path: tls.crt
+  - key: tls.key
+    path: tls.key
+{{- end -}}
+
 {{- define "partials.proxy.volumes.podinfo" -}}
 name: linkerd-podinfo
 downwardAPI:

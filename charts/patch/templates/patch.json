@@ -130,6 +130,14 @@ structs.
       {{- include "partials.proxy.volumes.service-account-token" . | fromYaml | toPrettyJson | nindent 6 }}
   },
   {{- end }}
+  {{- if .Values.proxy.inboundFallbackTLSSecret }}
+  {
+    "op": "add",
+    "path": "{{$prefix}}/spec/volumes/-",
+    "value":
+      {{- include "partials.proxy.volumes.inbound-fallback-tls" . | fromYaml | toPrettyJson | nindent 6 }}
+  },
+  {{- end }}
   {
     "op": "add",
   {{- if .Values.proxy.nativeSidecar }}

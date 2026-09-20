@@ -277,6 +277,10 @@ func generateAnnotationsDocs() []annotationDoc {
 			Description: "Comma-separated list of subnets in valid CIDR format that should be skipped by the proxy",
 		},
 		{
+			Name:        k8s.ProxyInboundFallbackTLSSecretAnnotation,
+			Description: "Name of a `kubernetes.io/tls` Secret in the workload's namespace. The proxy serves its `tls.crt`/`tls.key` on inbound TLS connections that do not originate from another Linkerd proxy, so legacy clients can keep trusting the application's pre-mesh certificate. Meshed connections keep using the Linkerd-issued identity. The Secret is mounted read-only into the proxy container at `/var/run/linkerd/tls/inbound-fallback`.",
+		},
+		{
 			Name:        k8s.ProxyShutdownGracePeriodAnnotation,
 			Description: "Grace period for graceful proxy shutdowns. If this timeout elapses before all open connections have completed, the proxy will terminate forcefully, closing any remaining connections.",
 		},

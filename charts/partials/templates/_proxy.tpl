@@ -240,6 +240,14 @@ be used in other contexts.
 - name: LINKERD2_PROXY_SHUTDOWN_GRACE_PERIOD
   value: {{.Values.proxy.shutdownGracePeriod | quote}}
 {{ end -}}
+{{/* The fallback TLS Secret only applies to injected workloads; control plane
+     proxies (which set proxy.component) always use their Linkerd identity. */ -}}
+{{ if and .Values.proxy.inboundFallbackTLSSecret (not .Values.proxy.component) -}}
+- name: LINKERD2_PROXY_INBOUND_FALLBACK_TLS_CERT_PATH
+  value: /var/run/linkerd/tls/inbound-fallback/tls.crt
+- name: LINKERD2_PROXY_INBOUND_FALLBACK_TLS_KEY_PATH
+  value: /var/run/linkerd/tls/inbound-fallback/tls.key
+{{ end -}}
 {{ if .Values.proxy.additionalEnv -}}
 {{ toYaml .Values.proxy.additionalEnv }}
 {{ end -}}
@@ -317,6 +325,11 @@ lifecycle:
 volumeMounts:
 - mountPath: /var/run/linkerd/identity/end-entity
   name: linkerd-identity-end-entity
+{{- if and .Values.proxy.inboundFallbackTLSSecret (not .Values.proxy.component) }}
+- mountPath: /var/run/linkerd/tls/inbound-fallback
+  name: linkerd-inbound-fallback-tls
+  readOnly: true
+{{- end }}
 {{- if .Values.proxy.tracing | default (dict) | dig "enabled" false }}
 - mountPath: /var/run/linkerd/podinfo
   name: linkerd-podinfo

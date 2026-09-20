@@ -74,6 +74,7 @@ func TestGetOverriddenValues(t *testing.T) {
 							k8s.ProxyDisableOutboundProtocolDetectTimeout:    "true",
 							k8s.ProxyDisableInboundProtocolDetectTimeout:     "true",
 							k8s.ProxyEnableNativeSidecarAnnotation:           "true",
+							k8s.ProxyInboundFallbackTLSSecretAnnotation:      "emoji-legacy-tls",
 						},
 					},
 					Spec: corev1.PodSpec{},
@@ -125,6 +126,7 @@ func TestGetOverriddenValues(t *testing.T) {
 				values.Proxy.DisableOutboundProtocolDetectTimeout = true
 				values.Proxy.DisableInboundProtocolDetectTimeout = true
 				values.Proxy.NativeSidecar = true
+				values.Proxy.InboundFallbackTLSSecret = "emoji-legacy-tls"
 				return values
 			},
 		},
@@ -193,6 +195,7 @@ func TestGetOverriddenValues(t *testing.T) {
 				k8s.ProxyDisableOutboundProtocolDetectTimeout: "true",
 				k8s.ProxyDisableInboundProtocolDetectTimeout:  "false",
 				k8s.ProxyEnableNativeSidecarAnnotation:        "true",
+				k8s.ProxyInboundFallbackTLSSecretAnnotation:   "ns-legacy-tls",
 			},
 			spec: appsv1.DeploymentSpec{
 				Template: corev1.PodTemplateSpec{
@@ -239,6 +242,7 @@ func TestGetOverriddenValues(t *testing.T) {
 				values.Proxy.DisableOutboundProtocolDetectTimeout = true
 				values.Proxy.DisableInboundProtocolDetectTimeout = false
 				values.Proxy.NativeSidecar = true
+				values.Proxy.InboundFallbackTLSSecret = "ns-legacy-tls"
 				return values
 			},
 		},
@@ -344,6 +348,61 @@ func TestGetOverriddenValues(t *testing.T) {
 				t.Errorf("%+v", diff)
 			}
 		})
+	}
+}
+
+func TestApplyAnnotationOverridesInboundFallbackTLSSecret(t *testing.T) {
+	newValues := func(base string) *l5dcharts.Values {
+		return &l5dcharts.Values{
+			Proxy: &l5dcharts.Proxy{
+				Image:                    &l5dcharts.Image{},
+				Ports:                    &l5dcharts.Ports{},
+				Metrics:                  &l5dcharts.ProxyMetrics{},
+				InboundFallbackTLSSecret: base,
+			},
+			ProxyInit: &l5dcharts.ProxyInit{},
+		}
+	}
+
+	testCases := []struct {
+		name       string
+		base       string
+		annotation string
+		expected   string
+	}{
+		{name: "valid name is applied", base: "", annotation: "legacy-tls", expected: "legacy-tls"},
+		{name: "valid dotted name is applied", base: "", annotation: "legacy.tls.v2", expected: "legacy.tls.v2"},
+		{name: "workload annotation overrides helm default", base: "helm-default", annotation: "legacy-tls", expected: "legacy-tls"},
+		{name: "empty annotation disables helm default", base: "helm-default", annotation: "", expected: ""},
+		{name: "upper case name is ignored", base: "helm-default", annotation: "Legacy-TLS", expected: "helm-default"},
+		{name: "name with slash is ignored", base: "", annotation: "ns/legacy-tls", expected: ""},
+		{name: "name with spaces is ignored", base: "", annotation: "legacy tls", expected: ""},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			values := newValues(tc.base)
+			ApplyAnnotationOverrides(values, map[string]string{
+				k8s.ProxyInboundFallbackTLSSecretAnnotation: tc.annotation,
+			}, nil, nil)
+			if values.Proxy.InboundFallbackTLSSecret != tc.expected {
+				t.Fatalf("expected inboundFallbackTLSSecret %q, got %q", tc.expected, values.Proxy.InboundFallbackTLSSecret)
+			}
+		})
+	}
+}
+
+func TestValidateInboundFallbackTLSSecret(t *testing.T) {
+	for _, valid := range []string{"", "tls", "legacy-tls", "legacy.tls.v2", "a1"} {
+		if errs := ValidateInboundFallbackTLSSecret(valid); len(errs) > 0 {
+			t.Errorf("expected %q to be valid, got: %v", valid, errs)
+		}
+	}
+	for _, invalid := range []string{"Legacy", "-tls", "tls-", "ns/tls", "tls_v2", "a b"} {
+		if errs := ValidateInboundFallbackTLSSecret(invalid); len(errs) == 0 {
+			t.Errorf("expected %q to be rejected", invalid)
+		}
 	}
 }
 

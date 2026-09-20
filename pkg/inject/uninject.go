@@ -59,7 +59,7 @@ func (conf *ResourceConfig) uninjectPodSpec(report *Report) {
 
 	volumes := []v1.Volume{}
 	for _, volume := range t.Volumes {
-		if volume.Name != k8s.IdentityEndEntityVolumeName && volume.Name != k8s.InitXtablesLockVolumeMountName && volume.Name != k8s.LinkerdTokenVolumeMountName {
+		if volume.Name != k8s.IdentityEndEntityVolumeName && volume.Name != k8s.InitXtablesLockVolumeMountName && volume.Name != k8s.LinkerdTokenVolumeMountName && volume.Name != k8s.InboundFallbackTLSVolumeName {
 			volumes = append(volumes, volume)
 		}
 	}

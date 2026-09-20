@@ -369,6 +369,12 @@ func makeProxyFlags(defaults *l5dcharts.Values) ([]flag.Flag, *pflag.FlagSet) {
 				return nil
 			}),
 
+		flag.NewStringFlag(proxyFlags, "inbound-fallback-tls-secret", defaults.Proxy.InboundFallbackTLSSecret, "Name of a kubernetes.io/tls Secret in the workload's namespace whose certificate the proxy serves on inbound connections that do not come from another Linkerd proxy",
+			func(values *l5dcharts.Values, value string) error {
+				values.Proxy.InboundFallbackTLSSecret = value
+				return nil
+			}),
+
 		// Deprecated flags
 
 		flag.NewStringFlag(proxyFlags, "proxy-memory", defaults.Proxy.Resources.Memory.Request, "Amount of Memory that the proxy sidecar requests",
@@ -614,6 +620,10 @@ func validateProxyValues(values *l5dcharts.Values) error {
 
 	if err := validatePolicy(values.Proxy.DefaultInboundPolicy); err != nil {
 		return err
+	}
+
+	if errs := inject.ValidateInboundFallbackTLSSecret(values.Proxy.InboundFallbackTLSSecret); len(errs) > 0 {
+		return fmt.Errorf("--inbound-fallback-tls-secret must be a valid Secret name: %s", strings.Join(errs, "; "))
 	}
 
 	return nil

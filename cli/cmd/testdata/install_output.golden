@@ -671,6 +671,7 @@ data:
         version: ProxyVersion
       inboundConnectTimeout: ""
       inboundDiscoveryCacheUnusedTimeout: ""
+      inboundFallbackTLSSecret: ""
       isGateway: false
       isIngress: false
       livenessProbe:

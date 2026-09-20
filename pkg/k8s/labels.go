@@ -327,6 +327,13 @@ const (
 	// graceful shutdowns in the proxy.
 	ProxyShutdownGracePeriodAnnotation = ProxyConfigAnnotationsPrefix + "/shutdown-grace-period"
 
+	// ProxyInboundFallbackTLSSecretAnnotation names a kubernetes.io/tls Secret
+	// (in the workload's namespace) whose certificate and key the proxy serves
+	// on inbound connections that do not originate from another Linkerd proxy.
+	// Meshed (proxy-to-proxy) connections keep using the identity issued by
+	// the Linkerd identity service.
+	ProxyInboundFallbackTLSSecretAnnotation = ProxyConfigAnnotationsPrefix + "/inbound-fallback-tls-secret"
+
 	// ProxyAdditionalEnvAnnotation allows setting additional proxy environment
 	// variables via a JSON-encoded list of Kubernetes EnvVar objects.
 	// Unlike other override annotations, this annotation is not inherited
@@ -367,6 +374,11 @@ const (
 	// IdentityEndEntityVolumeName is the name assigned the temporary end-entity
 	// volume mounted into each proxy to store identity credentials.
 	IdentityEndEntityVolumeName = "linkerd-identity-end-entity"
+
+	// InboundFallbackTLSVolumeName is the name of the volume that projects the
+	// user-provided kubernetes.io/tls Secret referenced by the
+	// ProxyInboundFallbackTLSSecretAnnotation into the proxy container.
+	InboundFallbackTLSVolumeName = "linkerd-inbound-fallback-tls"
 
 	// IdentityIssuerSecretName is the name of the Secret that stores issuer credentials.
 	IdentityIssuerSecretName = "linkerd-identity-issuer"
